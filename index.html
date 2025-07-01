@@ -149,7 +149,10 @@
 
         /* 실시간 러닝 화면 스타일 */
         #realtime { text-align: center; }
-        .weather-info { display: flex; justify-content: space-around; align-items: center; padding: 15px; background-color: var(--theme-bg); border-radius: 12px; margin-bottom: 20px; }
+        .location-info { text-align: center; padding-bottom: 15px; margin-bottom: 15px; border-bottom: 1px solid var(--theme-border); }
+        .location-info .icon { font-size: 1.2em; margin-right: 8px; }
+        .location-info .value { font-size: 1.2em; font-weight: 700; }
+        .weather-info { display: flex; justify-content: space-around; align-items: center; }
         .weather-item { text-align: center; }
         .weather-item .icon { font-size: 2em; }
         .weather-item .value { font-size: 1.1em; font-weight: 700; margin-top: 5px; }
@@ -277,16 +280,22 @@
         <!-- 실시간 러닝 섹션 -->
         <div id="realtime" class="section">
             <!-- 날씨 정보 섹션 -->
-            <div class="weather-info">
-                <div class="weather-item">
-                    <div class="icon" id="weather-icon"></div>
-                    <div class="value" id="weather-temp"></div>
-                    <div class="label">현재 날씨</div>
+            <div class="card">
+                <div class="location-info">
+                    <span class="icon">📍</span>
+                    <span class="value" id="weather-location">날씨 로딩 중...</span>
                 </div>
-                <div class="weather-item">
-                    <div class="icon" id="air-quality-icon"></div>
-                    <div class="value" id="air-quality-value"></div>
-                    <div class="label">미세먼지(PM2.5)</div>
+                <div class="weather-info">
+                    <div class="weather-item">
+                        <div class="icon" id="weather-icon"></div>
+                        <div class="value" id="weather-temp"></div>
+                        <div class="label">현재 기온</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="icon" id="air-quality-icon"></div>
+                        <div class="value" id="air-quality-value"></div>
+                        <div class="label">미세먼지(PM2.5)</div>
+                    </div>
                 </div>
             </div>
             <div class="realtime-stats-container">
@@ -593,10 +602,7 @@
         }
 
         // --- 날씨 및 미세먼지 API 연동 ---
-        async function fetchWeatherAndAirQuality() {
-            const lat = 37.5665; // 서울 위도
-            const lon = 126.9780; // 서울 경도
-
+        async function fetchWeatherAndAirQuality(lat, lon, locationName) {
             const weatherURL = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=weather_code,temperature_2m`;
             const airQualityURL = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5`;
 
@@ -609,15 +615,33 @@
                 const weatherData = await weatherResponse.json();
                 const airQualityData = await airQualityResponse.json();
 
-                updateWeatherUI(weatherData.current);
+                updateWeatherUI(weatherData.current, locationName);
                 updateAirQualityUI(airQualityData.current);
 
             } catch (error) {
                 console.error("날씨 정보 로딩 실패:", error);
+                document.getElementById('weather-location').textContent = "날씨 정보 로딩 실패";
             }
         }
 
-        function updateWeatherUI(currentWeather) {
+        async function getLocationName(lat, lon) {
+            // [FIX] Using a reliable reverse geocoding service (Nominatim)
+            const geocodingURL = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ko`;
+            try {
+                const response = await fetch(geocodingURL);
+                const data = await response.json();
+                if (data && data.address) {
+                    return data.address.suburb || data.address.city_district || data.address.city || '현재 위치';
+                }
+                return '알 수 없는 위치';
+            } catch (error) {
+                console.error("Geocoding error:", error);
+                return '위치 확인 불가';
+            }
+        }
+
+
+        function updateWeatherUI(currentWeather, locationName) {
             const temp = Math.round(currentWeather.temperature_2m);
             const weatherCode = currentWeather.weather_code;
 
@@ -634,6 +658,7 @@
 
             document.getElementById('weather-icon').textContent = getWeatherIcon(weatherCode);
             document.getElementById('weather-temp').textContent = `${temp}°C`;
+            document.getElementById('weather-location').textContent = locationName;
         }
 
         function updateAirQualityUI(currentAirQuality) {
@@ -830,7 +855,21 @@
             renderDashboard();
             if (userData.recentRuns.length > 0) renderReport(userData.recentRuns[0]);
             renderChallenges();
-            fetchWeatherAndAirQuality();
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async position => {
+                    const { latitude, longitude } = position.coords;
+                    const locationName = await getLocationName(latitude, longitude);
+                    fetchWeatherAndAirQuality(latitude, longitude, locationName);
+                }, error => {
+                    console.warn("Geolocation error:", error.message, ". Falling back to default location.");
+                    fetchWeatherAndAirQuality(37.5665, 126.9780, '서울 (위치 정보 실패)');
+                });
+            } else {
+                console.warn("Geolocation is not supported by this browser. Falling back to default location.");
+                fetchWeatherAndAirQuality(37.5665, 126.9780, '서울 (위치 정보 미지원)');
+            }
+
             navigateTo('dashboard');
         }
 
