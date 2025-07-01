@@ -1,3 +1,6 @@
+# Runner's High 배포 주소
+[러너스하이 프로토타입 페이지](https://firedrago95.github.io/Runners-High-prototype/)
+
 # 🏃‍♀️ Runner's High 사용자 모델링 및 요구사항 정의
 
 ## 📌 서비스 개요
