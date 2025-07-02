@@ -96,7 +96,7 @@
             margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             border: 1px solid var(--theme-border);
         }
-        .card h2 { margin-top: 0; font-size: 1.2em; display: flex; align-items: center; }
+        .card h2 { margin-top: 0; font-size: 1.2em; display: flex; align-items: center; justify-content: space-between;}
         .card h2 .icon { margin-right: 10px; font-size: 1.5em; }
         .highlight { color: var(--theme-primary); font-weight: 700; }
 
@@ -121,6 +121,16 @@
             text-align: right; margin-top: 5px;
             font-size: 0.9em; font-weight: 500;
         }
+        .goal-card { cursor: pointer; }
+        .edit-goal-icon { font-size: 0.8em; opacity: 0.7; }
+        .goal-edit-hint {
+            text-align: center;
+            font-size: 0.8em;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 10px;
+            margin-bottom: -5px;
+        }
+
 
         /* 대시보드 특정 스타일 */
         #dashboard-header { text-align: center; margin-bottom: 20px; }
@@ -193,6 +203,17 @@
         .badge-item p.earned { color: var(--theme-text); font-weight: 500;}
 
         /* 신발 관리 스타일 */
+        #add-shoe-btn {
+            font-size: 0.8em;
+            padding: 4px 10px;
+            border: 1px solid var(--theme-primary);
+            color: var(--theme-primary);
+            background-color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #add-shoe-btn:hover { background-color: var(--theme-primary); color: white; }
         .shoe-item, .retired-shoe-item { display: flex; align-items: center; padding: 10px; border: 1px solid var(--theme-border); border-radius: 8px; margin-bottom: 10px; }
         .shoe-icon { font-size: 2em; margin-right: 15px; }
         .shoe-info { flex-grow: 1; }
@@ -202,12 +223,28 @@
         .retired-shoe-item { background-color: #fdfaf3; border-color: var(--theme-gold); }
         .retired-shoe-item .shoe-icon { color: var(--theme-gold); }
 
-        /* 신발 선택 모달 스타일 */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        /* 모달 스타일 */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
         .modal-content { background-color: white; padding: 20px; border-radius: 12px; width: 80%; max-width: 350px; text-align: center; }
         .modal-content h3 { margin-top: 0; }
         .shoe-selection-item { display: flex; align-items: center; padding: 15px; border: 1px solid var(--theme-border); border-radius: 8px; margin-top: 10px; cursor: pointer; transition: background-color 0.3s; }
         .shoe-selection-item:hover { background-color: #f0f8ff; }
+
+        /* 모달 폼 관련 스타일 */
+        .modal-form { margin-top: 20px; }
+        .form-group { margin-bottom: 15px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--theme-border);
+            border-radius: 8px;
+            box-sizing: border-box; /* padding이 너비에 포함되도록 설정 */
+        }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .modal-btn { padding: 10px 20px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
+        .modal-btn.primary { background-color: var(--theme-primary); color: white; }
+        .modal-btn.secondary { background-color: #e0e0e0; color: var(--theme-text); }
 
     </style>
 </head>
@@ -233,7 +270,7 @@
             </div>
             <!-- 레벨 정보 카드 -->
             <div class="card level-card">
-                <h2><span id="level-icon"></span> <span id="level-name"></span></h2>
+                <h2><span><span id="level-icon"></span> <span id="level-name"></span></span></h2>
                 <div class="progress-container">
                     <div class="progress-bar" id="level-progress-bar"></div>
                 </div>
@@ -242,7 +279,7 @@
                 </div>
             </div>
             <div class="card">
-                <h2><span class="icon">📅</span> 주간 요약</h2>
+                <h2><span><span class="icon">📅</span> 주간 요약</span></h2>
                 <div class="stats-grid">
                     <div class="stat-item"><div class="value" id="weekly-distance"></div><p>주간 거리</p></div>
                     <div class="stat-item"><div class="value" id="weekly-runs"></div><p>주간 러닝</p></div>
@@ -250,18 +287,28 @@
                 </div>
             </div>
             <!-- 주간 목표 카드 -->
-            <div class="card goal-card">
-                <h2><span class="icon">🎯</span> 주간 목표</h2>
+            <div id="goal-card" class="card goal-card">
+                <h2>
+                    <span><span class="icon">🎯</span> 주간 목표</span>
+                    <span class="edit-goal-icon">✏️</span>
+                </h2>
                 <div class="progress-container">
                     <div class="progress-bar" id="goal-progress-bar"></div>
                 </div>
                 <div class="progress-text">
                     <span id="goal-current-km"></span>km / <span id="goal-total-km"></span>km
                 </div>
+                <p class="goal-edit-hint">카드를 탭하여 목표를 수정할 수 있습니다.</p>
             </div>
-            <div class="card"><h2><span class="icon">👟</span> 최근 운동 기록</h2><div id="recent-runs-list"></div></div>
             <div class="card">
-                <h2><span class="icon">👟</span> 나의 러닝화</h2>
+                <h2><span><span class="icon">👟</span> 최근 운동 기록</span></h2>
+                <div id="recent-runs-list"></div>
+            </div>
+            <div class="card">
+                <h2>
+                    <span><span class="icon">👟</span> 나의 러닝화</span>
+                    <button id="add-shoe-btn">새 신발 추가 +</button>
+                </h2>
                 <div id="active-shoes-list"></div>
                 <h3 style="margin-top: 20px; font-size: 1.1em;">🏆 명예의 전당</h3>
                 <div id="retired-shoes-list"></div>
@@ -271,10 +318,10 @@
         <!-- 운동 기록 섹션 -->
         <div id="report" class="section">
             <div class="card"><div id="report-header"><h2 id="report-title"></h2><p id="report-location"></p></div></div>
-            <div class="card"><h2><span class="icon">🗺️</span> GPS 경로</h2><div id="map"></div></div>
-            <div class="card"><h2><span class="icon">📊</span> 상세 데이터</h2><div class="stats-grid" id="report-stats-grid"></div></div>
-            <div class="card"><h2><span class="icon">⏱️</span> 자동 페이스 분석</h2><div class="chart-container"><canvas id="paceChart"></canvas></div></div>
-            <div class="card feedback-card"><h2><span class="icon">💡</span> 회복 가이드 및 피드백</h2><p id="report-feedback"></p></div>
+            <div class="card"><h2><span><span class="icon">🗺️</span> GPS 경로</span></h2><div id="map"></div></div>
+            <div class="card"><h2><span><span class="icon">📊</span> 상세 데이터</span></h2><div class="stats-grid" id="report-stats-grid"></div></div>
+            <div class="card"><h2><span><span class="icon">⏱️</span> 자동 페이스 분석</span></h2><div class="chart-container"><canvas id="paceChart"></canvas></div></div>
+            <div class="card feedback-card"><h2><span><span class="icon">💡</span> 회복 가이드 및 피드백</span></h2><p id="report-feedback"></p></div>
         </div>
 
         <!-- 실시간 러닝 섹션 -->
@@ -309,7 +356,7 @@
         <!-- 인기 코스 섹션 -->
         <div id="courses" class="section">
             <div class="card">
-                <h2><span class="icon">🔥</span> 러너들의 인기 스팟</h2>
+                <h2><span><span class="icon">🔥</span> 러너들의 인기 스팟</span></h2>
                 <p style="color: var(--theme-light-text); margin-top: -10px; margin-bottom: 20px;">
                     다른 사용자들이 가장 많이 달린 코스를 확인해보세요. 경로가 겹칠수록 진하게 표시됩니다.
                 </p>
@@ -320,14 +367,14 @@
         <!-- 챌린지 섹션 -->
         <div id="challenge" class="section">
             <div class="card">
-                <h2><span class="icon">🔥</span> 그룹 챌린지: 주간 최장거리</h2>
+                <h2><span><span class="icon">🔥</span> 그룹 챌린지: 주간 최장거리</span></h2>
                 <div class="leaderboard-toggle">
                     <button id="friends-btn" class="active">친구</button>
                     <button id="local-btn">동네 러너</button>
                 </div>
                 <div id="leaderboard"></div>
             </div>
-            <div class="card"><h2><span class="icon">🏅</span> 나의 배지</h2><div class="badge-grid" id="badge-gallery"></div></div>
+            <div class="card"><h2><span><span class="icon">🏅</span> 나의 배지</span></h2><div class="badge-grid" id="badge-gallery"></div></div>
         </div>
     </main>
 </div>
@@ -337,8 +384,50 @@
     <div class="modal-content">
         <h3>어떤 신발을 신으셨나요?</h3>
         <div id="shoe-selection-list"></div>
+        <div class="modal-actions">
+            <button class="modal-btn secondary" onclick="document.getElementById('shoe-selection-modal').style.display='none'">취소</button>
+        </div>
     </div>
 </div>
+
+<!-- 신발 추가 모달 -->
+<div id="add-shoe-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>새로운 러닝화 추가</h3>
+        <form id="add-shoe-form" class="modal-form">
+            <div class="form-group">
+                <label for="shoe-name-input">신발 이름</label>
+                <input type="text" id="shoe-name-input" required placeholder="예: 페가수스 41">
+            </div>
+            <div class="form-group">
+                <label for="shoe-icon-input">아이콘 (이모지)</label>
+                <input type="text" id="shoe-icon-input" required placeholder="예: 👟">
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="cancel-add-shoe-btn" class="modal-btn secondary">취소</button>
+                <button type="submit" class="modal-btn primary">추가하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 주간 목표 수정 모달 -->
+<div id="edit-goal-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3>주간 목표 수정</h3>
+        <form id="edit-goal-form" class="modal-form">
+            <div class="form-group">
+                <label for="goal-input">목표 거리 (km)</label>
+                <input type="number" id="goal-input" required min="1" step="any" placeholder="예: 20">
+            </div>
+            <div class="modal-actions">
+                <button type="button" id="cancel-edit-goal-btn" class="modal-btn secondary">취소</button>
+                <button type="submit" class="modal-btn primary">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -372,7 +461,7 @@
                 ]
             },
             badges: [
-                { name: "첫 달리기", icon: "🎉", earned: true },
+                { name: "첫 달리기", icon: "�", earned: true },
                 { name: "첫 5K 완주", icon: "👟", earned: true },
                 { name: "꾸준한 러너", icon: "📅", earned: true },
                 { name: "야간 러너", icon: "🌙", earned: true },
@@ -402,6 +491,15 @@
         // --- DOM 요소 ---
         const startStopBtn = document.getElementById('start-stop-btn');
         const shoeSelectionModal = document.getElementById('shoe-selection-modal');
+        const addShoeModal = document.getElementById('add-shoe-modal');
+        const editGoalModal = document.getElementById('edit-goal-modal');
+        const addShoeBtn = document.getElementById('add-shoe-btn');
+        const addShoeForm = document.getElementById('add-shoe-form');
+        const editGoalForm = document.getElementById('edit-goal-form');
+        const cancelAddShoeBtn = document.getElementById('cancel-add-shoe-btn');
+        const cancelEditGoalBtn = document.getElementById('cancel-edit-goal-btn');
+        const goalCard = document.getElementById('goal-card');
+        const goalInput = document.getElementById('goal-input');
 
         // --- 헬퍼 함수 ---
         const formatTime = (seconds) => {
@@ -503,7 +601,72 @@
             showShoeSelectionModal();
         }
 
+        // --- 주간 목표 설정 로직 ---
+        goalCard.addEventListener('click', () => {
+            goalInput.value = userData.weeklyGoal;
+            editGoalModal.style.display = 'flex';
+        });
+
+        cancelEditGoalBtn.addEventListener('click', () => {
+            editGoalModal.style.display = 'none';
+        });
+
+        editGoalForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newGoal = parseFloat(goalInput.value);
+            if (!isNaN(newGoal) && newGoal > 0) {
+                userData.weeklyGoal = newGoal;
+                renderDashboard();
+                editGoalModal.style.display = 'none';
+            } else {
+                console.log("유효한 숫자를 입력해주세요.");
+            }
+        });
+
+
         // --- 신발 관리 로직 ---
+
+        // 신발 추가 모달 열기
+        addShoeBtn.addEventListener('click', () => {
+            addShoeModal.style.display = 'flex';
+        });
+
+        // 신발 추가 모달 닫기
+        cancelAddShoeBtn.addEventListener('click', () => {
+            addShoeModal.style.display = 'none';
+            addShoeForm.reset();
+        });
+
+        // 모달 오버레이 클릭 시 닫기
+        [shoeSelectionModal, addShoeModal, editGoalModal].forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        // 새 신발 추가 폼 제출
+        addShoeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const shoeName = document.getElementById('shoe-name-input').value;
+            const shoeIcon = document.getElementById('shoe-icon-input').value;
+
+            if (shoeName && shoeIcon) {
+                const newShoe = {
+                    id: Date.now(), // 간단한 고유 ID 생성
+                    name: shoeName,
+                    icon: shoeIcon,
+                    totalDistance: 0,
+                    status: 'active'
+                };
+                userData.shoes.push(newShoe);
+                renderShoes(); // 신발 목록 다시 렌더링
+                addShoeModal.style.display = 'none';
+                addShoeForm.reset();
+            }
+        });
+
         function showShoeSelectionModal() {
             const shoeList = document.getElementById('shoe-selection-list');
             shoeList.innerHTML = '';
@@ -625,7 +788,6 @@
         }
 
         async function getLocationName(lat, lon) {
-            // [FIX] Using a reliable reverse geocoding service (Nominatim)
             const geocodingURL = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=ko`;
             try {
                 const response = await fetch(geocodingURL);
@@ -879,3 +1041,4 @@
 
 </body>
 </html>
+�
